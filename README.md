@@ -4,7 +4,8 @@
 #
 # V 0.2a - 11/22/25
 # -------------------
-# 
+# Added MENU screen, end screen
+# Added high score system
 #
 # V 0.1a - 11/22/25
 # -------------------
