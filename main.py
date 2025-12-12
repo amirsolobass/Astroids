@@ -7,6 +7,7 @@ from player import Player
 from asteroid import Asteroid
 from asteroidfield import AsteroidField
 from shot import Shot
+from powerup import PowerUp
 
 def main():
     print(f"Starting Asteroids with pygame version: {pygame.version.ver}")
@@ -16,22 +17,28 @@ def main():
     MENU = 0
     PLAYING = 1
     GAME_OVER = 2
+    SETTINGS = 3
     current_state = MENU
     score = 0
     high_score = 0
+    notification_text = ""
+    notification_timer = 0.0
     pygame.init()
     pygame.font.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    clock = pygame.time.Clock()
+    clock = pygame.time.Clock() # create clock to manage frame rate
     dt = 0.0
-    updatable = pygame.sprite.Group()
-    drawable = pygame.sprite.Group()
-    asteroids = pygame.sprite.Group()
+    updatable = pygame.sprite.Group() # sprites that need updating
+    drawable = pygame.sprite.Group() # sprites that need drawing
+    asteroids = pygame.sprite.Group() 
     shots = pygame.sprite.Group()
+    powerups = pygame.sprite.Group()
+    high_score = load_high_score() # load high score from file
     Asteroid.containers = (asteroids, updatable, drawable)
     Player.containers = (updatable, drawable)
-    AsteroidField.containers = updatable
+    AsteroidField.containers = updatable 
     Shot.containers = (shots, updatable, drawable)
+    PowerUp.containers = (powerups, updatable, drawable)
     asteroid_field = AsteroidField()
     player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
     while True:
@@ -70,6 +77,16 @@ def main():
                         asteroid.split()
                         shot.kill()
                         score += 10
+            for powerup in powerups:
+                if powerup.collides_with(player):
+                    log_event("powerup_collected")
+                    powerup.apply_effect(player)
+                    powerup.kill()
+                    # indicate powerup collected on screen
+                    notification_text = "Powerup Collected!"
+                    notification_timer = 2.0  # show for 2 seconds
+                    # align with powerup position
+                    screen.blit(font.render(notification_text, True, "yellow"), (player.position.x - 50, player.position.y - 50))
             # check for player collisions and update high score and game state
             for asteroid in asteroids:
                 if asteroid.collides_with(player):
@@ -83,6 +100,12 @@ def main():
             # draw score
             score_text = font.render(f"Score: {score}", True, "white")
             screen.blit(score_text, (10, 10)) # top-left corner
+            # draw notification text if any
+            if notification_timer > 0:
+                notify_surf = font.render(notification_text, True, "yellow")
+                # center at top of screen
+                screen.blit(notify_surf, (SCREEN_WIDTH/2 - notify_surf.get_width()/2, 50))
+                notification_timer -= dt
 
         elif current_state == GAME_OVER:
             # Draw Game Over Text
@@ -102,6 +125,8 @@ def main():
                     asteroid.kill()
                 for shot in shots:
                     shot.kill()
+                for powerup in powerups:
+                    powerup.kill()
                 player.position = pygame.Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
                 player.velocity = pygame.Vector2(0, 0)
                 asteroid_field.kill()
@@ -109,7 +134,7 @@ def main():
 
 
         pygame.display.flip()   
-        dt = clock.tick(120) / 1000  # limit to 120 FPS
+        dt = clock.tick(60) / 1000  # limit to 60 FPS
         
         
 

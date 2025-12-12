@@ -2,6 +2,11 @@
 #
 # This is my first game using Pygame.
 #
+# V 0.3a - 12/22/25
+# -------------------
+# Added Powerup infrastructure
+# 
+#
 # V 0.2a - 11/22/25
 # -------------------
 # Added MENU screen, end screen
