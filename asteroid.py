@@ -3,13 +3,21 @@ import random
 from logger import log_event
 from constants import *
 from circleshape import CircleShape
+import progress
+
 
 class Asteroid(CircleShape):
     def __init__(self, x, y, radius):
         super().__init__(x, y, radius)
-        
+
     def draw(self, screen):
-        pygame.draw.circle(screen, "white", self.position, self.radius, LINE_WIDTH)
+        if progress.is_enabled("secret"):
+            hue = int(self.radius * 5) % 360
+            color = pygame.Color(0)
+            color.hsva = (hue, 100, 100, 100)
+        else:
+            color = "white"
+        pygame.draw.circle(screen, color, self.position, self.radius, LINE_WIDTH)
 
     def update(self, dt):
         self.position += self.velocity * dt

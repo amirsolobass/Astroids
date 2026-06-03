@@ -3,6 +3,7 @@ import random
 from asteroid import Asteroid
 from constants import *
 from powerup import PowerUp
+import progress
 
 
 class AsteroidField(pygame.sprite.Sprite):
@@ -54,12 +55,14 @@ class AsteroidField(pygame.sprite.Sprite):
             kind = random.randint(1, ASTEROID_KINDS)
             self.spawn(ASTEROID_MIN_RADIUS * kind, position, velocity)
 
-        self.powerup_spawn_timer += dt
-        if self.powerup_spawn_timer > POWERUP_SPAWN_RATE_SECONDS:
-            self.powerup_spawn_timer = 0
-
-            # spawn a new powerup at a random location
-            pos = pygame.Vector2(
-                random.uniform(0, SCREEN_WIDTH), random.uniform(0, SCREEN_HEIGHT)
-            )
-            PowerUp(pos.x, pos.y)
+        any_powerup_unlocked = any(
+            progress.is_enabled(f"powerup_{t}") for t in ["rapid_fire", "life", "laser"]
+        )
+        if any_powerup_unlocked:
+            self.powerup_spawn_timer += dt
+            if self.powerup_spawn_timer > POWERUP_SPAWN_RATE_SECONDS:
+                self.powerup_spawn_timer = 0
+                pos = pygame.Vector2(
+                    random.uniform(0, SCREEN_WIDTH), random.uniform(0, SCREEN_HEIGHT)
+                )
+                PowerUp(pos.x, pos.y)
