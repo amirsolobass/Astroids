@@ -43,21 +43,36 @@ class PowerUp(CircleShape):
 
     def apply_effect(self, player):
         if self.kind == "rapid_fire":
-            player._original_shoot_cooldown = PLAYER_SHOOT_COOLDOWN_SECONDS * progress.get_fire_rate_multiplier()
-            player.shoot_cooldown = player._original_shoot_cooldown / POWERUP_RAPID_FIRE_MULTIPLIER
-            player.powerup_time_remaining = POWERUP_EFFECT_DURATION_SECONDS
+            if player.powerup_time_remaining > 0:
+                player.powerup_time_remaining += POWERUP_EFFECT_DURATION_SECONDS * 0.7
+            else:
+                player._original_shoot_cooldown = PLAYER_SHOOT_COOLDOWN_SECONDS * progress.get_fire_rate_multiplier()
+                player.shoot_cooldown = player._original_shoot_cooldown / POWERUP_RAPID_FIRE_MULTIPLIER
+                player.powerup_time_remaining = POWERUP_EFFECT_DURATION_SECONDS
 
         elif self.kind == "life":
             player.lives = min(player.lives + 1, PLAYER_MAX_LIVES + progress.get_max_lives_bonus())
 
         elif self.kind == "laser":
-            player.laser_mode = True
+            if player.laser_mode:
+                player.laser_level = min(player.laser_level + 1, 5)
+            else:
+                player.laser_mode = True
+                player.laser_level = 1
             player.laser_time_remaining = POWERUP_EFFECT_DURATION_SECONDS
 
         elif self.kind == "double_shot":
-            player.double_shot = True
+            if player.double_shot:
+                player.double_shot_level = min(player.double_shot_level + 1, 5)
+            else:
+                player.double_shot = True
+                player.double_shot_level = 1
             player.double_shot_time_remaining = POWERUP_EFFECT_DURATION_SECONDS
 
         elif self.kind == "homing":
-            player.homing_mode = True
+            if player.homing_mode:
+                player.homing_level = min(player.homing_level + 1, 5)
+            else:
+                player.homing_mode = True
+                player.homing_level = 1
             player.homing_time_remaining = POWERUP_EFFECT_DURATION_SECONDS

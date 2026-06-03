@@ -259,6 +259,30 @@ def get_upgrade_next_cost(key: str) -> int | None:
     return defn["costs"][tier]
 
 
+def refund_upgrade(key: str) -> bool:
+    global _tokens
+    defn = UPGRADE_DEFS.get(key)
+    if defn is None:
+        return False
+    tier = _upgrades.get(key, 0)
+    if tier <= 0:
+        return False
+    _tokens += defn["costs"][tier - 1]
+    _upgrades[key] = tier - 1
+    save_progress()
+    return True
+
+
+def get_upgrade_refund_value(key: str) -> int | None:
+    defn = UPGRADE_DEFS.get(key)
+    if defn is None:
+        return None
+    tier = _upgrades.get(key, 0)
+    if tier <= 0:
+        return None
+    return defn["costs"][tier - 1]
+
+
 # --- Shop: run gear ---
 
 def get_run_gear() -> dict:

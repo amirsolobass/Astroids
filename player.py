@@ -21,10 +21,13 @@ class Player(CircleShape):
         self.invincibility_timer = 0.0
         self.laser_mode = False
         self.laser_time_remaining = 0.0
+        self.laser_level = 0
         self.double_shot = False
         self.double_shot_time_remaining = 0.0
+        self.double_shot_level = 0
         self.homing_mode = False
         self.homing_time_remaining = 0.0
+        self.homing_level = 0
 
     def triangle(self):
         forward = pygame.Vector2(0, 1).rotate(self.rotation)
@@ -50,14 +53,17 @@ class Player(CircleShape):
             self.laser_time_remaining -= dt
             if self.laser_time_remaining <= 0:
                 self.laser_mode = False
+                self.laser_level = 0
         if self.double_shot_time_remaining > 0:
             self.double_shot_time_remaining -= dt
             if self.double_shot_time_remaining <= 0:
                 self.double_shot = False
+                self.double_shot_level = 0
         if self.homing_time_remaining > 0:
             self.homing_time_remaining -= dt
             if self.homing_time_remaining <= 0:
                 self.homing_mode = False
+                self.homing_level = 0
         if getattr(self, "powerup_time_remaining", 0) > 0:
             self.powerup_time_remaining -= dt
             if self.powerup_time_remaining <= 0:
@@ -76,7 +82,10 @@ class Player(CircleShape):
             self.move(-dt, boosted)
         if keys[pygame.K_SPACE]:
             if self.cd_timer <= 0:
-                self.cd_timer = self.shoot_cooldown
+                if self.laser_mode and self.laser_level > 1:
+                    self.cd_timer = self.shoot_cooldown / self.laser_level
+                else:
+                    self.cd_timer = self.shoot_cooldown
                 self.shoot()
         self.position.x %= SCREEN_WIDTH
         self.position.y %= SCREEN_HEIGHT
@@ -91,17 +100,59 @@ class Player(CircleShape):
         bullet_speed = PLAYER_SHOOT_SPEED * progress.get_bullet_speed_multiplier()
         direction = pygame.Vector2(0, 1).rotate(self.rotation)
 
+        _double_cone = {
+            2: [-15, 15],
+            3: [-15, 0, 15],
+            4: [-20, -7, 7, 20],
+            5: [-20, -10, 0, 10, 20],
+        }
+        _homing_spread = {
+            2: [-10, 10],
+            3: [-15, 0, 15],
+            4: [-20, -7, 7, 20],
+            5: [-20, -10, 0, 10, 20],
+            6: [-25, -15, -5, 5, 15, 25],
+        }
+
+        shot_fired = False
+
         if self.laser_mode:
-            Laser(self.position.x, self.position.y, self.rotation)
-        elif self.homing_mode:
+            shot_fired = True
+            if self.double_shot and self.double_shot_level >= 2:
+                for angle in _double_cone.get(self.double_shot_level, [0]):
+                    Laser(self.position.x, self.position.y, self.rotation + angle)
+            elif self.double_shot:
+                for angle in (-8, 8):
+                    Laser(self.position.x, self.position.y, self.rotation + angle)
+            else:
+                Laser(self.position.x, self.position.y, self.rotation)
+
+        if self.homing_mode:
+            shot_fired = True
             from shot import HomingShot
-            HomingShot(self.position.x, self.position.y, self.rotation)
-        elif self.double_shot:
-            perp = pygame.Vector2(0, 1).rotate(self.rotation + 90)
-            for side in (-1, 1):
-                offset = perp * DOUBLE_SHOT_OFFSET * side
-                s = Shot(self.position.x + offset.x, self.position.y + offset.y)
-                s.velocity = direction * bullet_speed
-        else:
-            shot = Shot(self.position.x, self.position.y)
-            shot.velocity = direction * bullet_speed
+            count = self.homing_level + 1
+            for angle in _homing_spread.get(count, [0]):
+                HomingShot(self.position.x, self.position.y, self.rotation + angle, self.homing_level)
+
+        if not shot_fired:
+            if self.double_shot:
+                if self.double_shot_level <= 1:
+                    perp = pygame.Vector2(0, 1).rotate(self.rotation + 90)
+                    for side in (-1, 1):
+                        offset = perp * DOUBLE_SHOT_OFFSET * side
+                        s = Shot(self.position.x + offset.x, self.position.y + offset.y)
+                        s.velocity = direction * bullet_speed
+                else:
+                    cone_angles = {
+                        2: [0, -15, 15],
+                        3: [0, -15, 15, -30, 30],
+                        4: [0, -20, 20, -40, 40],
+                        5: [0, -15, 15, -30, 30, -45, 45],
+                    }
+                    for angle_offset in cone_angles.get(self.double_shot_level, [0]):
+                        shot_dir = pygame.Vector2(0, 1).rotate(self.rotation + angle_offset)
+                        s = Shot(self.position.x, self.position.y)
+                        s.velocity = shot_dir * bullet_speed
+            else:
+                shot = Shot(self.position.x, self.position.y)
+                shot.velocity = direction * bullet_speed

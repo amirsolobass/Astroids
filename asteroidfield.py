@@ -56,7 +56,7 @@ class AsteroidField(pygame.sprite.Sprite):
             self.spawn(ASTEROID_MIN_RADIUS * kind, position, velocity)
 
         any_powerup_unlocked = any(
-            progress.is_enabled(f"powerup_{t}") for t in ["rapid_fire", "life", "laser"]
+            progress.is_enabled(f"powerup_{t}") for t in ["rapid_fire", "life", "laser", "double_shot", "homing"]
         )
         if any_powerup_unlocked:
             self.powerup_spawn_timer += dt

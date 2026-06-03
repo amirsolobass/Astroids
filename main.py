@@ -11,7 +11,7 @@ from constants import (
     PLAYER_SHOOT_COOLDOWN_SECONDS,
     SHAKE_DURATION, SHAKE_INTENSITY,
     PARTICLE_COUNT, PARTICLE_SPEED_MIN, PARTICLE_SPEED_MAX, PARTICLE_LIFESPAN,
-    HOMING_TURN_RATE,
+    HOMING_TURN_RATE, HOMING_EXPLOSION_RADII,
 )
 from player import Player
 from asteroid import Asteroid
@@ -48,10 +48,13 @@ def reset_player(player):
     player.invincibility_timer = 0.0
     player.laser_mode = False
     player.laser_time_remaining = 0.0
+    player.laser_level = 0
     player.double_shot = False
     player.double_shot_time_remaining = 0.0
+    player.double_shot_level = 0
     player.homing_mode = False
     player.homing_time_remaining = 0.0
+    player.homing_level = 0
     player.powerup_time_remaining = 0.0
     player.shoot_cooldown = PLAYER_SHOOT_COOLDOWN_SECONDS * progress.get_fire_rate_multiplier()
     player._original_shoot_cooldown = player.shoot_cooldown
@@ -231,12 +234,21 @@ def main():
                 for shot in list(shots):
                     if asteroid.collides_with(shot):
                         pos = pygame.Vector2(asteroid.position)
+                        shot_level = getattr(shot, "level", 0)
                         asteroid.split()
                         shot.kill()
                         score += int(10 * progress.get_score_multiplier())
                         shake_timer = SHAKE_DURATION
                         if progress.is_enabled("particles"):
                             spawn_particles(particles, pos, (255, 200, 100))
+                        if shot_level >= 2:
+                            exp_radius = HOMING_EXPLOSION_RADII[min(shot_level, 5)]
+                            for other in list(asteroids):
+                                if other.alive() and other.position.distance_to(pos) <= exp_radius:
+                                    other.split()
+                                    score += int(10 * progress.get_score_multiplier())
+                                    if progress.is_enabled("particles"):
+                                        spawn_particles(particles, pygame.Vector2(other.position), (255, 120, 50))
 
             # Laser-asteroid collisions
             for laser in lasers:
@@ -260,13 +272,28 @@ def main():
                     notification_timer = 2.0
 
             # Powerup pickups
+            _powerup_names = {
+                "rapid_fire": "Rapid Fire",
+                "life": "Extra Life",
+                "laser": "Laser Beam",
+                "double_shot": "Double Shot",
+                "homing": "Homing Missiles",
+            }
+            _powerup_level_attrs = {
+                "laser": "laser_level",
+                "double_shot": "double_shot_level",
+                "homing": "homing_level",
+            }
             for powerup in list(powerups):
                 if powerup.collides_with(player):
                     log_event("powerup_collected")
                     powerup.apply_effect(player)
                     powerup.kill()
                     score += int(25 * progress.get_score_multiplier())
-                    notification_text = "Powerup Collected!"
+                    name = _powerup_names.get(powerup.kind, powerup.kind.replace("_", " ").title())
+                    level_attr = _powerup_level_attrs.get(powerup.kind)
+                    level = getattr(player, level_attr, 0) if level_attr else 0
+                    notification_text = f"{name} Lv.{level}!" if level > 1 else f"{name}!"
                     notification_timer = 2.0
 
             # Asteroid-player collision
@@ -318,8 +345,33 @@ def main():
                     r = max(1, int(3 * alpha))
                     pygame.draw.circle(screen, p["color"], (int(p["pos"].x), int(p["pos"].y)), r)
 
-            score_text = font.render(f"Score: {score}   Lives: {player.lives}", True, "white")
+            session_tokens = score // progress.TOKEN_RATE
+            score_text = font.render(f"Score: {score}   Lives: {player.lives}   Tokens: +{session_tokens}", True, "white")
             screen.blit(score_text, (10, 10))
+
+            # Active powerup HUD
+            _hud_colors = {
+                "LASER": (255, 165, 0),
+                "DOUBLE SHOT": (100, 200, 255),
+                "HOMING": (200, 100, 255),
+                "RAPID FIRE": (255, 215, 0),
+            }
+            hud_y = 50
+            active_powerups = []
+            if player.laser_mode:
+                active_powerups.append(("LASER", player.laser_level, player.laser_time_remaining))
+            if player.double_shot:
+                active_powerups.append(("DOUBLE SHOT", player.double_shot_level, player.double_shot_time_remaining))
+            if player.homing_mode:
+                active_powerups.append(("HOMING", player.homing_level, player.homing_time_remaining))
+            if player.powerup_time_remaining > 0:
+                active_powerups.append(("RAPID FIRE", 0, player.powerup_time_remaining))
+            for pu_name, pu_level, pu_time in active_powerups:
+                color = _hud_colors.get(pu_name, (200, 200, 200))
+                level_str = f" Lv.{pu_level}" if pu_level > 0 else ""
+                pu_surf = small_font.render(f"{pu_name}{level_str}  {pu_time:.1f}s", True, color)
+                screen.blit(pu_surf, (10, hud_y))
+                hud_y += 26
 
             if notification_timer > 0:
                 notify_surf = font.render(notification_text, True, "yellow")
@@ -371,9 +423,23 @@ def main():
 
             if newly_unlocked:
                 names = [progress.UNLOCK_NAMES[f] if f in progress.UNLOCK_NAMES else f for f in newly_unlocked]
-                unlock_surf = font.render(f"UNLOCKED: {', '.join(names)}!", True, (255, 215, 0))
-                screen.blit(unlock_surf, (SCREEN_WIDTH / 2 - unlock_surf.get_width() / 2, y))
-                y += 55
+                line, lines = [], []
+                for name in names:
+                    candidate = ", ".join(line + [name])
+                    test_surf = font.render(f"UNLOCKED: {candidate}!", True, (255, 215, 0))
+                    if line and test_surf.get_width() > SCREEN_WIDTH - 40:
+                        lines.append(", ".join(line))
+                        line = [name]
+                    else:
+                        line.append(name)
+                if line:
+                    lines.append(", ".join(line))
+                for i, ln in enumerate(lines):
+                    prefix = "UNLOCKED: " if i == 0 else "           "
+                    suffix = "!" if i == len(lines) - 1 else ","
+                    unlock_surf = font.render(f"{prefix}{ln}{suffix}", True, (255, 215, 0))
+                    screen.blit(unlock_surf, (SCREEN_WIDTH / 2 - unlock_surf.get_width() / 2, y))
+                    y += 42
 
             # Navigation options
             nav_items = ["[R] Restart"]

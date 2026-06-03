@@ -18,10 +18,11 @@ class Shot(CircleShape):
 class HomingShot(CircleShape):
     containers: tuple = ()
 
-    def __init__(self, x, y, rotation):
+    def __init__(self, x, y, rotation, level=1):
         super().__init__(x, y, SHOT_RADIUS)
         self.velocity = pygame.Vector2(0, 1).rotate(rotation) * PLAYER_SHOOT_SPEED * progress.get_bullet_speed_multiplier()
         self.life = HOMING_LIFESPAN
+        self.level = level
 
     def draw(self, screen):
         pygame.draw.circle(screen, (200, 100, 255), self.position, self.radius)

@@ -22,6 +22,23 @@ uv run python main.py
 
 ## Version History
 
+- **v0.5b** — Powerup improvements
+  - Homing missiles now fire multiple shots per trigger based on level (Lv.1 = 2 shots, up to Lv.5 = 6 shots in a spread)
+  - Rapid fire now stacks on re-pickup: collecting while active extends duration by 70% instead of resetting
+  - All powerups now work simultaneously — laser, homing, and double shot fire independently on the same trigger; laser + double shot fires a cone of laser beams
+  - Fixed: permanent upgrades are now refundable in the shop (Backspace to refund one tier, tokens returned)
+  - Fixed: homing missiles were turning too slowly; turn rate increased 4×
+  - Fixed: multiple unlocks at once no longer overflow the screen — text wraps to a new line
+- **v0.5a** — Powerup system expansion
+  - Powerup level system: collect the same powerup while it's active to level it up (max Lv.5)
+  - Laser levels: each level multiplies fire rate (Lv.5 = 5× faster)
+  - Double Shot levels: Lv.2+ expands into a cone spread (up to 7 shots at Lv.5)
+  - Homing levels: Lv.2–5 add an explosion on impact with increasing radius (30–100px), chaining splits to nearby asteroids
+  - In-game powerup HUD: shows active powerup name, level, and time remaining
+  - Powerup collection notification now shows the specific powerup name (and level if upgraded)
+  - In-game token counter: HUD shows projected tokens earned this session
+  - Fixed: Double Shot and Homing powerups were missing from the spawn list and never appeared
+  - Increased powerup on-screen duration (5s → 15s), spawn frequency (10s → 6s), and effect duration (8s → 12s)
 - **v0.4b** — Bug fixes
   - Fixed player not wrapping around screen edges
 - **v0.4a** — Full roguelite progression expansion

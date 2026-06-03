@@ -90,6 +90,12 @@ def draw_shop(screen, font, small_font, tab, selected_idx):
                 cost_surf = small_font.render(f"Need: {next_cost} tokens", True, (180, 60, 60))
             screen.blit(cost_surf, (7 * sw // 8 - cost_surf.get_width() - 10, y + 4))
 
+            if is_selected:
+                refund_val = progress.get_upgrade_refund_value(key)
+                if refund_val is not None:
+                    refund_surf = small_font.render(f"[BKSP] Refund: +{refund_val}", True, (160, 120, 80))
+                    screen.blit(refund_surf, (7 * sw // 8 - refund_surf.get_width() - 10, y + 24))
+
         else:  # run gear
             key = row["key"]
             defn = row["defn"]
@@ -115,7 +121,10 @@ def draw_shop(screen, font, small_font, tab, selected_idx):
             screen.blit(cost_surf, (7 * sw // 8 - cost_surf.get_width() - 10, y + 4))
 
     hint_y = sh - 50
-    hint = small_font.render("[ENTER] Buy    [ESC] Back", True, (100, 100, 100))
+    if tab == TAB_UPGRADES:
+        hint = small_font.render("[ENTER] Buy    [BKSP] Refund    [ESC] Back", True, (100, 100, 100))
+    else:
+        hint = small_font.render("[ENTER] Buy    [ESC] Back", True, (100, 100, 100))
     screen.blit(hint, ((sw - hint.get_width()) // 2, hint_y))
 
 
@@ -145,4 +154,9 @@ def handle_shop_event(event, tab, selected_idx) -> tuple:
         else:
             success = progress.buy_run_gear(row["key"])
             return ("bought" if success else "cant_afford"), tab, selected_idx
+    if event.key == pygame.K_BACKSPACE and tab == TAB_UPGRADES:
+        row = rows[selected_idx]
+        if row["type"] == "upgrade":
+            success = progress.refund_upgrade(row["key"])
+            return ("refunded" if success else None), tab, selected_idx
     return None, tab, selected_idx
