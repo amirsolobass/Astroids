@@ -78,6 +78,8 @@ class Player(CircleShape):
             if self.cd_timer <= 0:
                 self.cd_timer = self.shoot_cooldown
                 self.shoot()
+        self.position.x %= SCREEN_WIDTH
+        self.position.y %= SCREEN_HEIGHT
 
     def move(self, dt, boosted=False):
         unit_vector = pygame.Vector2(0, 1)

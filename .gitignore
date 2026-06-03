@@ -4,9 +4,16 @@ __pycache__/
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
+
+# Runtime data (user-local, not versioned)
 game_state.jsonl
+game_events.jsonl
 highscore.txt
+progress.json
 
 # Virtual environments
 .venv
+
+# macOS
+.DS_Store

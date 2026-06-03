@@ -22,6 +22,8 @@ uv run python main.py
 
 ## Version History
 
+- **v0.4b** — Bug fixes
+  - Fixed player not wrapping around screen edges
 - **v0.4a** — Full roguelite progression expansion
   - Persistent upgrade shop: 6 permanent upgrades (bullet speed, fire rate, move speed, max lives, max shields, score multiplier) purchased with tokens across sessions
   - Per-run gear: buy starting shields, starting rapid fire, or bonus lives before each run
